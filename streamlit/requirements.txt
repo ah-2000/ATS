@@ -1,0 +1,10 @@
+streamlit
+google-generativeai
+python-dotenv
+pdfplumber
+pandas
+openai
+anthropic
+requests
+python-docx
+PyMuPDF
