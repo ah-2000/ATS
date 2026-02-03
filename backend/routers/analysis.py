@@ -66,4 +66,11 @@ async def analyze_cv(
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        error_details = {
+            "error": str(e),
+            "type": type(e).__name__,
+            "traceback": traceback.format_exc()
+        }
+        print(f"ERROR in /api/analysis: {error_details}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -99,14 +99,38 @@ def parse_json_response(response: str) -> Optional[Dict[str, Any]]:
     """Parse and clean AI response to extract JSON."""
     try:
         response = response.strip()
+        
+        # Remove markdown code blocks
         if response.startswith("```json"):
             response = response[7:]
-        if response.startswith("```"):
+        elif response.startswith("```"):
             response = response[3:]
+        
         if response.endswith("```"):
             response = response[:-3]
+        
         response = response.strip()
-        return json.loads(response)
-    except json.JSONDecodeError:
+        
+        # Try to find JSON object if response contains extra text
+        if not response.startswith('{'):
+            start_idx = response.find('{')
+            if start_idx != -1:
+                response = response[start_idx:]
+        
+        if not response.endswith('}'):
+            end_idx = response.rfind('}')
+            if end_idx != -1:
+                response = response[:end_idx + 1]
+        
+        parsed = json.loads(response)
+        print(f"Successfully parsed JSON response: {list(parsed.keys())}")
+        return parsed
+        
+    except json.JSONDecodeError as e:
+        print(f"JSON Parse Error: {str(e)}")
+        print(f"Response preview (first 500 chars): {response[:500]}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error in parse_json_response: {str(e)}")
         return None
 

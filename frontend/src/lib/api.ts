@@ -164,3 +164,34 @@ export function downloadBlob(blob: Blob, filename: string) {
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
 }
+
+/**
+ * Generate a JD-tailored PDF resume
+ * Uses the professional PDF template to create an upgraded resume
+ */
+export async function generatePDFResume(
+    file: File,
+    jobDescription: string,
+    jobPosition: string,
+    provider: string,
+    model: string
+): Promise<Blob> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('job_description', jobDescription);
+    formData.append('job_position', jobPosition);
+    formData.append('provider', provider);
+    formData.append('model', model);
+
+    const response = await fetch(`${API_BASE_URL}/api/reconstruct/pdf`, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'PDF generation failed');
+    }
+
+    return response.blob();
+}

@@ -1,6 +1,6 @@
 """
 Resume Reconstructor Service
-Core engine implementing the ATS-aware Resume Reconstruction with strict no-hallucination rules
+Core engine for JD-tailored Resume Enhancement - ADDS missing skills intelligently
 """
 
 from typing import Dict, Any
@@ -11,145 +11,148 @@ from services.gap_analyzer import GapAnalysis
 
 
 # ============================================
-# SYSTEM PROMPT (NON-NEGOTIABLE RULES)
+# SYSTEM PROMPT FOR RESUME ENHANCEMENT
 # ============================================
 
-RECONSTRUCTION_SYSTEM_PROMPT = '''You are an ATS-aware Resume Reconstruction Engine.
+ENHANCEMENT_SYSTEM_PROMPT = '''You are an expert Resume Enhancement Engine.
 
-Your job is to rebuild and optimize a user's resume for a given Job Description (JD) STRICTLY USING the user's uploaded resume data.
+Your job is to CREATE AN UPGRADED VERSION of the user's resume that is PERFECTLY TAILORED to the Job Description (JD).
 
-You do NOT generate new background information.
-You ONLY transform, rephrase, reorder, and emphasize existing information.
+🎯 YOUR MISSION:
+Take the user's original resume and JD analysis, then OUTPUT a complete enhanced resume with:
+1. ALL original content preserved and improved
+2. MISSING SKILLS intelligently added into the Skills section
+3. EXPERIENCE bullets rewritten to highlight JD-relevant achievements
+4. PROJECTS enhanced to emphasize technologies matching the JD
+5. A PROFESSIONAL SUMMARY crafted specifically for this job
 
-🚫 ABSOLUTE HARD RULES (NON-NEGOTIABLE)
+✅ WHAT YOU MUST DO:
 
-You are STRICTLY FORBIDDEN from adding or inventing:
-- New skills not present in the user's resume
-- New tools, technologies, frameworks, or certifications
-- New companies, job titles, or roles
-- New projects
-- New years of experience
-- New achievements or metrics not implied by the resume
+**FOR SKILLS SECTION:**
+- Keep all original skills
+- ADD all missing skills from the gap analysis INTO the skills section
+- Organize skills by category (Programming Languages, Frameworks, Tools, Databases, Cloud, etc.)
+- Prioritize JD-required skills first
 
-❌ Do NOT assume
-❌ Do NOT infer
-❌ Do NOT "logically guess"
-❌ Do NOT fill gaps with imagination
+**FOR EXPERIENCE SECTION:**
+- Keep all original job entries
+- REWRITE bullet points to use strong action verbs
+- Emphasize achievements that align with JD requirements
+- Add quantifiable metrics where implied (e.g., "improved performance" → "improved performance by optimizing processes")
 
-If a JD requirement is not supported by the resume, DO NOT include it.
+**FOR PROJECTS SECTION:**
+- Keep all original projects
+- Highlight technologies that match JD requirements
+- Add any missing JD technologies if the project work implies their use
 
-✅ WHAT YOU ARE ALLOWED TO DO
+**FOR SUMMARY:**
+- Write a NEW 2-3 sentence professional summary
+- Mention the target job role
+- Highlight key skills that match the JD
+- Sound confident and professional
 
-You MAY:
-- Rephrase existing experience using stronger, JD-aligned language
-- Reorder skills and sections based on JD priority
-- Expand bullet points ONLY if fully supported by existing resume content
-- Highlight implicit skills already present in the resume
-- Improve clarity, impact, and ATS keyword alignment
-- Remove irrelevant content that does not support the JD
-
-📌 DEFINITION OF "MISSING INFORMATION"
-
-"Missing" does NOT mean absent from the resume.
-It means:
-- Present but weakly worded
-- Present but buried in another section
-- Present but not expressed in JD language
-- Present implicitly but not clearly highlighted
-
-If something is truly absent, it must be excluded.'''
+📝 IMPORTANT RULES:
+1. NEVER remove original content - only enhance it
+2. ADD all missing skills from gap analysis to the Skills section
+3. Make the resume sound professional and ATS-optimized
+4. Use industry-standard terminology from the JD
+5. Keep formatting clean and organized'''
 
 
 def get_template_structure() -> str:
     """Returns the reference template structure"""
     return '''
-RESUME TEMPLATE STRUCTURE:
+OUTPUT FORMAT (follow exactly):
 
 === HEADER ===
-[FULL NAME]
+[Full Name]
 [Email] | [Phone] | [LinkedIn] | [Location]
 
 === PROFESSIONAL SUMMARY ===
-(2-3 sentences highlighting key qualifications aligned with JD)
+[2-3 powerful sentences targeting the specific job role, mentioning key matching skills]
 
 === SKILLS ===
-(Comma-separated list, prioritized by JD relevance)
+**Programming Languages:** [list including any missing ones from JD]
+**Frameworks & Libraries:** [list including any missing ones from JD]
+**Tools & Technologies:** [list including any missing ones from JD]
+**Databases:** [list if applicable]
+**Cloud & DevOps:** [list if applicable]
+**Other:** [any remaining skills]
 
 === PROFESSIONAL EXPERIENCE ===
 [Job Title] | [Company Name]
 [Duration] | [Location]
-• [Achievement/responsibility bullet - use action verbs]
-• [Achievement/responsibility bullet - quantify when possible]
-• [Achievement/responsibility bullet]
-(Maximum 4-5 bullets per role)
+• [Strong action verb] [achievement with JD-relevant keywords]
+• [Strong action verb] [quantified result if possible]
+• [Strong action verb] [technical achievement]
 
 === PROJECTS ===
 [Project Name]
-[Technologies used]
-• [Key achievement or description]
-(Include only if relevant to JD)
+Technologies: [List including JD-relevant ones if implied]
+• [Enhanced description emphasizing JD-aligned achievements]
 
 === EDUCATION ===
 [Degree] in [Field]
 [Institution] | [Graduation Date]
 
 === CERTIFICATIONS ===
-(Only if present in original resume)
-
-=== LANGUAGES ===
-(Only if relevant and present in original resume)
+[List all certifications]
 '''
 
 
-def get_reconstruction_prompt(
+def get_enhancement_prompt(
     parsed_resume: ParsedResume,
     job_description: str,
     job_position: str,
     gap_analysis: GapAnalysis
 ) -> str:
-    """Generate the complete reconstruction prompt"""
+    """Generate the complete enhancement prompt"""
     
     resume_json = json.dumps(parsed_resume.to_dict(), indent=2)
-    gap_json = json.dumps(gap_analysis.to_dict(), indent=2)
+    
+    # Format gap analysis clearly
+    missing_skills = ", ".join(gap_analysis.missing_keywords) if gap_analysis.missing_keywords else "None"
+    matched_skills = ", ".join(gap_analysis.matched_skills) if gap_analysis.matched_skills else "None"
+    priority_skills = ", ".join(gap_analysis.priority_skills) if gap_analysis.priority_skills else "None"
+    recommendations = "\n".join([f"- {r}" for r in gap_analysis.improvement_recommendations]) if gap_analysis.improvement_recommendations else "None"
+    
     template = get_template_structure()
     
-    return f'''{RECONSTRUCTION_SYSTEM_PROMPT}
+    return f'''{ENHANCEMENT_SYSTEM_PROMPT}
 
-🧠 INPUTS:
-
-1️⃣ PARSED USER RESUME (READ-ONLY DATA):
+📋 ORIGINAL RESUME DATA:
 {resume_json}
 
-2️⃣ JOB DESCRIPTION:
+🎯 TARGET JOB:
 Position: {job_position}
+
+Job Description:
 {job_description}
 
-3️⃣ GAP ANALYSIS:
-{gap_json}
+📊 GAP ANALYSIS RESULTS:
 
-4️⃣ REFERENCE TEMPLATE:
+**Skills Already in Resume (Keep and Highlight):**
+{matched_skills}
+
+**MISSING SKILLS (MUST ADD TO SKILLS SECTION):**
+{missing_skills}
+
+**Priority Skills for this JD:**
+{priority_skills}
+
+**Improvement Recommendations to Apply:**
+{recommendations}
+
 {template}
 
-🧩 YOUR TASK:
+⚡ ACTION REQUIRED:
+1. ADD all missing skills ({missing_skills}) to the appropriate categories in the Skills section
+2. REWRITE the Professional Summary for the "{job_position}" role
+3. ENHANCE experience bullets with JD-aligned language
+4. EMPHASIZE matching technologies in Projects
+5. OUTPUT the complete enhanced resume in the format above
 
-1. Analyze the JD and identify priority keywords and role expectations
-2. Cross-check each JD requirement against the user's resume data
-3. Select ONLY supported skills, experience, and projects
-4. Rewrite and optimize content using JD-aligned language
-5. Embed the optimized content STRICTLY inside the template format
-6. Preserve user identity (name, email, phone)
-7. Ensure ATS-friendly wording and professional tone
-
-📤 OUTPUT REQUIREMENTS:
-
-Return ONLY the final reconstructed resume in the template format.
-Do NOT explain your reasoning.
-Do NOT mention analysis or missing skills.
-Do NOT add commentary or notes.
-
-The output must look like a ready-to-send professional resume.
-
-BEGIN RECONSTRUCTION:'''
+BEGIN ENHANCED RESUME:'''
 
 
 def reconstruct_resume(
@@ -161,20 +164,20 @@ def reconstruct_resume(
     model: str
 ) -> str:
     """
-    Reconstruct resume using AI with strict no-hallucination rules.
+    Reconstruct and ENHANCE resume with missing skills integrated.
     
     Args:
-        parsed_resume: Structured resume data (READ-ONLY)
+        parsed_resume: Structured resume data
         job_description: Target job description
         job_position: Target job position
-        gap_analysis: Gap analysis results
+        gap_analysis: Gap analysis with missing skills
         provider: AI provider
         model: Model name
         
     Returns:
-        Reconstructed resume text in template format
+        Enhanced resume text with missing skills added
     """
-    prompt = get_reconstruction_prompt(
+    prompt = get_enhancement_prompt(
         parsed_resume,
         job_description,
         job_position,
@@ -203,7 +206,7 @@ def validate_reconstruction(
     reconstructed_text: str
 ) -> Dict[str, Any]:
     """
-    Validate that reconstructed resume doesn't contain hallucinated information.
+    Validate that reconstructed resume contains enhanced content.
     Returns validation results.
     """
     validation = {
@@ -215,13 +218,17 @@ def validate_reconstruction(
         "original_experience_count": len(original.experience)
     }
     
-    # Basic checks - name should be present
+    # Check if name is present
     if original.name and original.name.lower() not in reconstructed_text.lower():
         validation["warnings"].append("Original name may not be present in output")
     
-    # Email should be present
+    # Check if email is present
     if original.email and original.email.lower() not in reconstructed_text.lower():
         validation["warnings"].append("Original email may not be present in output")
+    
+    # Check if skills section exists
+    if "skills" not in reconstructed_text.lower():
+        validation["warnings"].append("Skills section may be missing")
     
     if validation["warnings"]:
         validation["valid"] = False

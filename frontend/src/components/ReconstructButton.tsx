@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { reconstructResume, downloadBlob, previewReconstruction, ReconstructionPreview } from '@/lib/api';
+import { reconstructResume, downloadBlob, previewReconstruction, ReconstructionPreview, generatePDFResume } from '@/lib/api';
 
 interface ReconstructButtonProps {
     file: File;
@@ -19,6 +19,7 @@ export default function ReconstructButton({
     model
 }: ReconstructButtonProps) {
     const [loading, setLoading] = useState(false);
+    const [pdfLoading, setPdfLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showPreview, setShowPreview] = useState(false);
     const [preview, setPreview] = useState<ReconstructionPreview | null>(null);
@@ -66,6 +67,28 @@ export default function ReconstructButton({
         }
     };
 
+    const handlePDFDownload = async () => {
+        setPdfLoading(true);
+        setError(null);
+
+        try {
+            const blob = await generatePDFResume(
+                file,
+                jobDescription,
+                jobPosition,
+                provider,
+                model
+            );
+
+            const originalName = file.name.replace(/\.[^/.]+$/, '');
+            downloadBlob(blob, `${originalName}_upgraded.pdf`);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'PDF generation failed');
+        } finally {
+            setPdfLoading(false);
+        }
+    };
+
     return (
         <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
             <h4 className="font-semibold mb-3 flex items-center gap-2">
@@ -103,6 +126,22 @@ export default function ReconstructButton({
                         </>
                     ) : (
                         <>📥 Download DOCX</>
+                    )}
+                </button>
+
+                <button
+                    className="btn btn-primary flex-1"
+                    onClick={handlePDFDownload}
+                    disabled={loading || pdfLoading}
+                    title="Generate JD-tailored PDF resume"
+                >
+                    {pdfLoading ? (
+                        <>
+                            <div className="spinner"></div>
+                            Generating PDF...
+                        </>
+                    ) : (
+                        <>📄 Download PDF</>
                     )}
                 </button>
             </div>
