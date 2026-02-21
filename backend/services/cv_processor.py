@@ -63,32 +63,20 @@ def extract_text(file_bytes: bytes, file_type: str) -> str:
 # ============================================
 
 def get_analysis_prompt(cv_text: str, job_description: str, job_position: str) -> str:
-    """Generate the ATS analysis prompt."""
-    return f'''Hey, act like a skilled and experienced ATS (Application Tracking System) with deep understanding of both technical and non-technical fields.
-Your task is to evaluate the resume based on the given job description for the job position "{job_position}".
-You must consider the job market is very competitive and provide the best assistance for improving resumes.
-Assign the percentage matching based on the job description and list the missing keywords with high accuracy.
-Evaluate the resume while ignoring name, gender, and age.
+    """Generate the ATS analysis prompt - optimized for speed."""
+    return f'''Act as an expert ATS (Application Tracking System). Evaluate the resume against the job description for "{job_position}".
 
-**Requirements:**
-- Assign a JD match percentage (accurate score).
-- Highlight missing skills (only relevant ones).
-- Extract Key Strengths and provide Recommendations.
-- Ensure the response **always contains** a "Profile Summary".
-- Provide weighted scoring breakdown.
-
-**Input:**
 Job Position: {job_position}
 Resume: {cv_text}
 Job Description: {job_description}
 
-**Return Response in Strict JSON Format:**
+Return ONLY valid JSON:
 {{
     "JD Match": "XX%",
-    "MissingKeywords": ["Skill1", "Skill2", "Skill3"],
+    "MissingKeywords": ["Skill1", "Skill2"],
     "KeyStrength": "Brief summary of key strengths",
-    "Recommendations": "Brief recommendations for improvement",
-    "Profile Summary": "Concise evaluation of strengths and gaps.",
+    "Recommendations": "Brief recommendations",
+    "Profile Summary": "Concise evaluation of strengths and gaps",
     "ExperienceMatch": "XX%",
     "SkillsMatch": "XX%",
     "EducationMatch": "XX%"

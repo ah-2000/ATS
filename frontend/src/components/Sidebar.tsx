@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Bot, Cpu, CheckCircle2, XCircle, ChevronDown, Layers } from 'lucide-react';
 import { ModelStatus, getModels } from '@/lib/api';
 import ThemeToggle from './ThemeToggle';
 
@@ -26,8 +27,6 @@ export default function Sidebar({
             try {
                 const status = await getModels();
                 setModelStatus(status);
-
-                // Auto-select first available provider
                 const providers = Object.keys(status);
                 const firstAvailable = providers.find(p => status[p].available);
                 if (firstAvailable && !selectedProvider) {
@@ -55,50 +54,70 @@ export default function Sidebar({
 
     return (
         <aside className="sidebar">
+            {/* Logo / Brand */}
             <div className="mb-8">
-                <h1 className="text-xl font-bold text-[var(--color-primary)] flex items-center gap-2">
-                    <span>Smart ATS</span>
-                </h1>
-                <p className="text-xs text-[var(--color-text-secondary)] mt-2">
-                    AI-Powered CV Analysis
-                </p>
+                <div className="flex items-center gap-2.5 mb-1">
+                    <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center"
+                        style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)' }}
+                    >
+                        <Bot size={20} color="white" />
+                    </div>
+                    <div>
+                        <h1 className="text-base font-bold" style={{ color: 'var(--color-primary)' }}>Smart ATS</h1>
+                        <p className="text-[10px] text-[var(--color-text-secondary)] font-medium tracking-wider uppercase">
+                            AI-Powered Analysis
+                        </p>
+                    </div>
+                </div>
             </div>
 
-            <div className="mb-8">
-                <h3 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mt-2 mb-4">
-                    AI Model Selection
-                </h3>
+            {/* AI Model Selection */}
+            <div className="mb-6">
+                <div className="section-divider">
+                    <Cpu size={12} />
+                    <span>AI Configuration</span>
+                </div>
 
                 {loading ? (
-                    <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+                    <div className="flex items-center gap-2.5 text-sm text-[var(--color-text-secondary)] py-4 justify-center">
                         <div className="spinner"></div>
-                        Loading models...
+                        <span>Loading models...</span>
                     </div>
                 ) : error ? (
                     <div className="alert alert-error text-xs">{error}</div>
                 ) : (
                     <>
                         <div className="mb-4">
-                            <label className="label text-xs">Provider</label>
-                            <select
-                                className="select"
-                                value={selectedProvider}
-                                onChange={(e) => {
-                                    onProviderChange(e.target.value);
-                                    const models = modelStatus?.[e.target.value]?.models || [];
-                                    if (models.length > 0) {
-                                        onModelChange(models[0]);
-                                    }
-                                }}
-                            >
-                                {availableProviders.map(provider => (
-                                    <option key={provider} value={provider}>{provider}</option>
-                                ))}
-                            </select>
+                            <label className="label text-[11px]">
+                                <Layers size={12} />
+                                Provider
+                            </label>
+                            <div className="relative">
+                                <select
+                                    className="select"
+                                    style={{ paddingRight: '2.5rem' }}
+                                    value={selectedProvider}
+                                    onChange={(e) => {
+                                        onProviderChange(e.target.value);
+                                        const models = modelStatus?.[e.target.value]?.models || [];
+                                        if (models.length > 0) {
+                                            onModelChange(models[0]);
+                                        }
+                                    }}
+                                >
+                                    {availableProviders.map(provider => (
+                                        <option key={provider} value={provider}>{provider}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
                         <div className="mb-4">
-                            <label className="label text-xs">Model</label>
+                            <label className="label text-[11px]">
+                                <Cpu size={12} />
+                                Model
+                            </label>
                             <select
                                 className="select"
                                 value={selectedModel}
@@ -113,39 +132,44 @@ export default function Sidebar({
                 )}
             </div>
 
-            <div className="mb-8">
-                <h3 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mt-2 mb-4">
-                    Provider Status
-                </h3>
+            {/* Provider Status */}
+            <div className="mb-6">
+                <div className="section-divider">
+                    <span>Status</span>
+                </div>
 
                 {modelStatus && (
                     <div className="space-y-2">
                         {Object.entries(modelStatus).map(([provider, status]) => (
                             <div
                                 key={provider}
-                                className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg font-medium ${status.available
-                                    ? 'bg-[var(--color-success-bg)] text-[var(--color-success)]'
-                                    : 'bg-[var(--color-error-bg)] text-[var(--color-error)]'
-                                    }`}
+                                className={`provider-pill ${status.available ? 'provider-pill-available' : 'provider-pill-unavailable'}`}
                             >
-                                <span>{status.available ? '✅' : '❌'}</span>
-                                {provider}
+                                {status.available
+                                    ? <CheckCircle2 size={14} />
+                                    : <XCircle size={14} />
+                                }
+                                <span>{provider}</span>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
 
+            {/* Current Selection Card */}
             {selectedProvider && selectedModel && (
-                <div className="p-4 bg-[var(--color-background)] rounded-lg border border-[var(--color-border)] mb-8">
-                    <p className="text-xs text-[var(--color-text-secondary)] mb-2 font-medium">Current Selection:</p>
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">{selectedProvider}</p>
-                    <p className="text-xs text-[var(--color-primary)] mt-1">{selectedModel}</p>
+                <div className="glass-card mb-6">
+                    <p className="text-[10px] text-[var(--color-text-secondary)] font-semibold uppercase tracking-wider mb-2">Active Model</p>
+                    <p className="text-sm font-bold text-[var(--color-text-primary)]">{selectedProvider}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-primary)' }}>{selectedModel}</p>
                 </div>
             )}
 
+            {/* Spacer */}
+            <div className="flex-1"></div>
+
             {/* Theme Toggle */}
-            <div className="mt-auto pt-4 border-t border-[var(--color-border)]">
+            <div className="pt-4 border-t border-[var(--color-border)]">
                 <ThemeToggle />
             </div>
         </aside>

@@ -99,54 +99,50 @@ class ParsedResume:
 
 
 def get_parsing_prompt(resume_text: str) -> str:
-    """Generate prompt to parse resume into structured data"""
-    return f'''You are an expert resume parser. Extract ALL information from the following resume into a structured JSON format.
+    """Generate prompt to parse resume into structured data - optimized for speed"""
+    return f'''Extract ALL information from this resume into structured JSON. Extract ONLY what is explicitly stated.
 
-**IMPORTANT**: Extract ONLY what is explicitly stated. Do NOT infer, guess, or add information.
-
-**Resume Text:**
+Resume:
 {resume_text}
 
-**Return ONLY valid JSON in this exact format:**
+Return ONLY valid JSON:
 {{
     "name": "Full Name",
-    "email": "email@example.com",
-    "phone": "+1234567890",
-    "linkedin": "linkedin.com/in/username or empty string",
-    "location": "City, Country or empty string",
-    "summary": "Professional summary if present, empty string if not",
-    "skills": ["Skill1", "Skill2", "Skill3"],
+    "email": "email or empty string",
+    "phone": "phone or empty string",
+    "linkedin": "linkedin url or empty string",
+    "location": "location or empty string",
+    "summary": "professional summary or empty string",
+    "skills": ["Skill1", "Skill2"],
     "experience": [
         {{
-            "company": "Company Name",
-            "job_title": "Job Title",
+            "company": "Company",
+            "job_title": "Title",
             "duration": "Jan 2020 - Present",
             "location": "City, Country",
-            "responsibilities": ["Responsibility 1", "Responsibility 2"]
+            "responsibilities": ["Resp 1", "Resp 2"]
         }}
     ],
     "projects": [
         {{
             "name": "Project Name",
             "description": "Brief description",
-            "technologies": ["Tech1", "Tech2"],
-            "highlights": ["Achievement 1", "Achievement 2"]
+            "technologies": ["Tech1"],
+            "highlights": ["Achievement 1"]
         }}
     ],
     "education": [
         {{
-            "institution": "University Name",
-            "degree": "Bachelor's/Master's etc",
-            "field_of_study": "Computer Science",
+            "institution": "University",
+            "degree": "Degree",
+            "field_of_study": "Field",
             "graduation_date": "2020",
-            "gpa": "3.8 or empty string"
+            "gpa": "GPA or empty string"
         }}
     ],
-    "certifications": ["Cert1", "Cert2"],
-    "languages": ["English", "Spanish"]
-}}
-
-Return ONLY the JSON, no explanation or markdown formatting.'''
+    "certifications": ["Cert1"],
+    "languages": ["English"]
+}}'''
 
 
 def parse_json_safely(response: str) -> Optional[Dict[str, Any]]:

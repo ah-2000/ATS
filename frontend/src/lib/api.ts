@@ -22,6 +22,7 @@ export interface AnalysisResult {
     EducationMatch: string;
     filename: string;
     file_type: string;
+    session_id?: string;
 }
 
 /**
@@ -44,7 +45,7 @@ export async function analyzeCV(
     jobPosition: string,
     provider: string,
     model: string
-): Promise<{ success: boolean; analysis: AnalysisResult }> {
+): Promise<{ success: boolean; analysis: AnalysisResult; session_id?: string }> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('job_description', jobDescription);
@@ -99,7 +100,8 @@ export async function previewReconstruction(
     jobDescription: string,
     jobPosition: string,
     provider: string,
-    model: string
+    model: string,
+    sessionId?: string
 ): Promise<ReconstructionPreview> {
     const formData = new FormData();
     formData.append('file', file);
@@ -107,6 +109,7 @@ export async function previewReconstruction(
     formData.append('job_position', jobPosition);
     formData.append('provider', provider);
     formData.append('model', model);
+    if (sessionId) formData.append('session_id', sessionId);
 
     const response = await fetch(`${API_BASE_URL}/api/reconstruct/preview`, {
         method: 'POST',
@@ -129,7 +132,8 @@ export async function reconstructResume(
     jobDescription: string,
     jobPosition: string,
     provider: string,
-    model: string
+    model: string,
+    sessionId?: string
 ): Promise<Blob> {
     const formData = new FormData();
     formData.append('file', file);
@@ -137,6 +141,7 @@ export async function reconstructResume(
     formData.append('job_position', jobPosition);
     formData.append('provider', provider);
     formData.append('model', model);
+    if (sessionId) formData.append('session_id', sessionId);
 
     const response = await fetch(`${API_BASE_URL}/api/reconstruct`, {
         method: 'POST',
@@ -174,7 +179,8 @@ export async function generatePDFResume(
     jobDescription: string,
     jobPosition: string,
     provider: string,
-    model: string
+    model: string,
+    sessionId?: string
 ): Promise<Blob> {
     const formData = new FormData();
     formData.append('file', file);
@@ -182,6 +188,7 @@ export async function generatePDFResume(
     formData.append('job_position', jobPosition);
     formData.append('provider', provider);
     formData.append('model', model);
+    if (sessionId) formData.append('session_id', sessionId);
 
     const response = await fetch(`${API_BASE_URL}/api/reconstruct/pdf`, {
         method: 'POST',

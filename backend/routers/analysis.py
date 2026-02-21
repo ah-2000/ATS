@@ -3,12 +3,37 @@ Analysis Router
 API endpoints for CV analysis
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from typing import Optional
 from services.ai_providers import get_ai_response
 from services.cv_processor import extract_text, get_analysis_prompt, parse_json_response
+from services.resume_parser import parse_resume
+from services.session_cache import generate_session_id, store_session
 
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
+
+# Background thread pool for non-blocking cache warming
+_cache_executor = ThreadPoolExecutor(max_workers=2)
+
+
+def _cache_parsed_resume(cv_text: str, provider: str, model: str,
+                         file_bytes: bytes, job_description: str, job_position: str):
+    """Background task: parse resume and store in cache (non-blocking)."""
+    try:
+        parsed_resume = parse_resume(cv_text, provider, model)
+        session_id = generate_session_id(file_bytes, job_description)
+        store_session(
+            session_id=session_id,
+            cv_text=cv_text,
+            parsed_resume=parsed_resume,
+            file_bytes=file_bytes,
+            job_description=job_description,
+            job_position=job_position,
+        )
+        print(f"[Cache] Session stored in background: {session_id}")
+    except Exception as cache_err:
+        print(f"[Cache] Background parse failed (non-critical): {cache_err}")
 
 
 @router.post("")
@@ -22,13 +47,8 @@ async def analyze_cv(
     """
     Analyze a CV against a job description.
     
-    Returns ATS analysis including:
-    - JD Match percentage
-    - Missing keywords
-    - Key strengths
-    - Recommendations
-    - Profile summary
-    - Breakdown scores (Experience, Skills, Education)
+    Also parses and caches the resume so that subsequent
+    DOCX/PDF generation skips the parse step (saves ~1 AI call).
     """
     try:
         # Read file
@@ -44,7 +64,7 @@ async def analyze_cv(
         if not cv_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract text from file.")
         
-        # Generate prompt and get AI response
+        # Generate prompt and get AI response (AI call 1: analysis)
         prompt = get_analysis_prompt(cv_text, job_description, job_position)
         response = get_ai_response(prompt, provider, model)
         
@@ -54,13 +74,24 @@ async def analyze_cv(
         if not result:
             raise HTTPException(status_code=500, detail="Failed to parse AI response.")
         
+        # Parse resume in BACKGROUND (non-blocking) for cache warming.
+        # The user gets analysis results immediately. By the time they
+        # click Generate DOCX/PDF, the cache will likely be ready.
+        session_id = generate_session_id(file_bytes, job_description)
+        _cache_executor.submit(
+            _cache_parsed_resume,
+            cv_text, provider, model,
+            file_bytes, job_description, job_position
+        )
+        
         # Add file info
         result["filename"] = file.filename
         result["file_type"] = file_type
         
         return {
             "success": True,
-            "analysis": result
+            "analysis": result,
+            "session_id": session_id,
         }
         
     except HTTPException:
