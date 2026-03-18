@@ -16,7 +16,7 @@ load_dotenv()
 
 # Load API keys
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://192.168.18.8:11434")
-OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "300"))  # Default 5 minutes
+OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "120"))  # Reduced to 2 minutes
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -49,11 +49,10 @@ def get_model_status() -> Dict[str, Any]:
     return status
 
 
-def get_ollama_response(prompt: str, model: str, max_retries: int = 2) -> str:
-    """Get response from Ollama API with extended timeout for large tasks."""
-    for attempt in range(max_retries):
+def get_ollama_response(prompt: str, model: str, max_retries: int = 1) -> str:
+    """Get response from Ollama API with reduced timeout for faster feedback."""
+    for attempt in range(max_retries + 1):
         try:
-            # Extended timeout for CV enhancement tasks (configurable via env)
             response = requests.post(
                 f"{OLLAMA_BASE_URL}/api/generate",
                 json={"model": model, "prompt": prompt, "stream": False},
@@ -64,23 +63,22 @@ def get_ollama_response(prompt: str, model: str, max_retries: int = 2) -> str:
             else:
                 raise Exception(f"Ollama API returned status {response.status_code}")
         except requests.exceptions.Timeout:
-            if attempt < max_retries - 1:
-                print(f"Ollama timeout on attempt {attempt + 1}, retrying...")
-                time.sleep(3)
+            if attempt < max_retries:
+                time.sleep(2)
                 continue
             else:
                 raise Exception(
-                    f"Ollama API timed out after {OLLAMA_TIMEOUT}s. The model '{model}' may be too slow for this task. "
-                    f"Try using a faster model (e.g., llama3.2, qwen2.5) or switch to Gemini/OpenAI/Claude."
+                    f"Ollama API timed out after {OLLAMA_TIMEOUT}s. The model '{model}' may be too slow. "
+                    f"Try a faster model (llama3.2, qwen2.5) or use Gemini/OpenAI/Claude."
                 )
         except requests.exceptions.ConnectionError:
             raise Exception(
                 f"Cannot connect to Ollama at {OLLAMA_BASE_URL}. "
-                f"Please ensure Ollama is running and accessible."
+                f"Ensure Ollama is running and accessible."
             )
         except Exception as e:
-            if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)
+            if attempt < max_retries:
+                time.sleep(1)
                 continue
             else:
                 raise Exception(f"Ollama API error: {str(e)}")

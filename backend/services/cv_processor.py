@@ -21,14 +21,16 @@ import copy
 
 def extract_pdf_text(file_bytes: bytes) -> str:
     """Extract text from PDF file."""
-    text = ""
+    text_parts = []
     try:
         with pdfplumber.open(BytesIO(file_bytes)) as pdf:
             for page in pdf.pages:
-                text += page.extract_text() or ""
+                page_text = page.extract_text()
+                if page_text:
+                    text_parts.append(page_text)
     except Exception as e:
         raise Exception(f"Error reading PDF: {str(e)}")
-    return text
+    return "\n".join(text_parts)
 
 
 def extract_docx_text(file_bytes: bytes) -> str:
